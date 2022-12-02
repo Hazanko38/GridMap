@@ -1,0 +1,26 @@
+Templated container class designed to optimize performance for collision testing. 
+
+PURPOSE:
+	The idea is to have a container that manages sorting a full list of objects/characters/etc on a map into individual GridCells,
+comprising the entire GridMap itself. Due to the nature of collision checking, if you only check the current cell based on a single XY,
+position there is a small chance the collision will not occur if on the border of a cell; this container optimizes that as well by actually holding two 
+individual vectors within each that: one with objects individual to that cell, as well as another containing local objects and all neighboring cells.
+Neigboring cell information is only populated if it is needed, meaning the extra overhead only occurs once-per-Refresh() and only on request.
+
+USAGE:
+	Static objects can be added all on load time, and a single Refresh() call is required before any checks or GridCell requests can be made; any static objects added aftwards can use optional bool parameter set to true when using Add() to add object to container's main object list(or leave to false if batching
+is desired with an actual Refresh() call).
+Dynamic objects(those that have potential to change map position given any frame update), require a Refresh() BEFORE every frame update where any objects are required to perform checks or requests for internal vector from GridCell are made; Add() optional bool parameter still works as expected.
+
+The container is templated to allow defining how the object added is held in the main list, as well as how it's held in each GridCell - with the expectation being both are same object type and either a copy or a raw pointer/smart_pointer. I don't believe this currently works with references although it probably
+should.
+If first template parameter is an actual object(not a raw pointer/smart_pointer), all internal operations are expecting a struct/class with public members named X|Y|W|H. If first template parameter is of pointer type, all internal operations are expecting a struct/class with a public member function of name GetLocation() that returns a struct with public members named X|Y|W|H.
+
+GridMap relies on struct GridDetails to decide how to create it's internal cell structure and how to add items, as well as GridLoc to create a struct that allows easy-finding of the associated cell for each collision check. Initial GridDetails must be created with information on map total size, as well as number of 
+columns + rows; this GridDetails should be held along with GridMap as a member, as it's used in unison with GridLoc to calculate location within the GridMap.
+
+Usage may require some accomodations within the main game loop and initial setup of things, but this is probably more than a 25x performance gain over 
+a naive approach of checking all characters against all others on the map. Depending on the size of the total map, and the total amount of objects within each GridMap, some playing with the number of columns + rows is required; I recommend finding a grid size that will hold the total amount of objects squared, in each cell(assuming even distribution). If there are expected hotspots(certain cells that may contain many more objects) it might be smart to bump up the col+row count slightly to help accomodate.
+
+EXAMPLE:
+	main.cpp contains useage example and benchmark test.
